@@ -227,7 +227,7 @@ summary.levcost <- function(x) x$total
   mdl <-add(mdl, reps)
   mdl@sysInfo@region <- region
   mdl@sysInfo@year   <- year
-  mdl@sysInfo@slice  <- slice
+  mdl  <- setSlice(mdl, slice)
   mdl@sysInfo@discount <- discount
   mdl@LECdata$region <- region
   if (is.null(comm)) {
@@ -325,13 +325,21 @@ summary.levcost <- function(x) x$total
     dsc[, 'invcost'] <- rr@modOut@data$vTechInv[1, region, ]
     g2 <- rr@modInp@parameters[['pTechFixom']]@data
     dsc[, 'fixom'] <- (tapply(g2$value, g2[, 1:3], sum) * rr@modOut@data$vTechCap)[1, region,]
-    g1 <- rr@modInp@parameters[['pTechVarom']]@data
+    # g1 <- rr@modInp@parameters[['pTechVarom']]@data
     g3 <- rr@modInp@parameters[['pTechCvarom']]@data
-    g4 <- tapply(g3$value, g3[, 1:5], sum)
-    dsc[, 'varom'] <- apply(tapply(g1$value, g1[, 1:4], sum) * 
-      rr@modOut@data$vTechAct, 1:3, sum)[1, region, ] +
-      apply(g4 *(rr@modOut@data$vTechInp[, dimnames(g4)$comm,,,, drop = FALSE] +
-      rr@modOut@data$vTechOut[, dimnames(g4)$comm,,,, drop = FALSE]), c(1, 3:4), sum)[1, region, ]
+    #g4 <- tapply(g3$value, g3[, 1:5], sum)
+    g1 <- merge(rr@modInp@parameters[['pTechVarom']]@data, rr@modOut@variables$vTechAct, by = c('tech', 'region', 'year', 'slice'))
+    g1$year <- factor(g1$year, levels = dsc$year)
+    g1 <- tapply(g1$value.x * g1$value.y, g1$year, sum); g1[is.na(g1)] <- 0
+    # tapply(g1$value.x * g1$value.y, g1[, 1:3], sum)
+    g4 <- merge(rr@modInp@parameters[['pTechCvarom']]@data, rr@modOut@variables$vTechInp, by = c('tech', 'comm', 'region', 'year', 'slice'))
+    g4$year <- factor(g4$year, levels = dsc$year)
+    g4 <- tapply(g4$value.x * g4$value.y, g4$year, sum); g4[is.na(g4)] <- 0
+    ##
+    g5 <- merge(rr@modInp@parameters[['pTechCvarom']]@data, rr@modOut@variables$vTechOut, by = c('tech', 'comm', 'region', 'year', 'slice'))
+    g5$year <- factor(g5$year, levels = dsc$year)
+    g5 <- tapply(g5$value.x * g5$value.y, g5$year, sum); g5[is.na(g5)] <- 0
+    dsc[, 'varom'] <- (g1 + g4 + g5)
     dsc[, 'total.cost'] <- apply(dsc[, c('fuel.total', 'invcost', 'fixom', 'varom')], 1, sum)
     dsc[, 'total.discount.cost'] <- dsc[, 'total.cost'] * dsc[, 'discount.factor']
   dd <- sum(dsc[, 'discount.factor'])

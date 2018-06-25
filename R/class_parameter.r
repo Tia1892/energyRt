@@ -367,10 +367,19 @@ setMethod('print', 'parameter', function(x, ...) {
     }
   } else if (obj@type == 'map') {
     if (nrow(obj@data) == 0) {
-      ret <- paste('param ', obj@name, ' default 0 := ;', sep = '')
+      if (!obj@not_data) {
+        ret <- paste('param ', obj@name, ' default 0 := ;', sep = '')
+      } else {
+        ret <- paste('param ', obj@name, ' default 1 := ;', sep = '')
+      }
     } else {
-      ret <- paste('param ', obj@name, ' default 0 := ', sep = '')
-      ret <- c(ret, apply(obj@data, 1, function(x) paste('[', paste(x, collapse = ','), '] 1', sep = '')))
+      if (!obj@not_data) {
+        ret <- paste('param ', obj@name, ' default 0 := ', sep = '')
+        ret <- c(ret, apply(obj@data, 1, function(x) paste('[', paste(x, collapse = ','), '] 1', sep = '')))
+      } else {
+        ret <- paste('param ', obj@name, ' default 1 := ', sep = '')
+        ret <- c(ret, apply(obj@data, 1, function(x) paste('[', paste(x, collapse = ','), '] 0', sep = '')))
+      }
       ret <- c(ret, ';', '')
     }
   } else if (obj@type == 'simple') {

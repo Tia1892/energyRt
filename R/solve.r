@@ -594,7 +594,7 @@ LL1 <- proc.time()[3]
        assign('prec', prec, globalenv())
       # check_parameters(prec)
       ########
-      cat('pzz2: ', round(proc.time()[3] - pzz, 2), '\n')
+      # cat('pzz2: ', round(proc.time()[3] - pzz, 2), '\n')
       #  Remove unused technology
 ########
     for(i in seq(along =obj@data)) {
@@ -692,10 +692,10 @@ LL1 <- proc.time()[3]
        # cat(energyRt:::.toGams(prec@parameters[[i]]), sep = '\n', file = zz)
      }
    } else stop('Uneceptable threads number')
-   cat('pzz5: ', round(proc.time()[3] - pzz, 2), '\n')
+   #cat('pzz5: ', round(proc.time()[3] - pzz, 2), '\n')
    pzz <- proc.time()[3]
    cat(file_w, sep = '\n', file = zz)
-    cat('pzz6: ', round(proc.time()[3] - pzz, 2), '\n')
+    #cat('pzz6: ', round(proc.time()[3] - pzz, 2), '\n')
     if (any(names(obj@misc) == 'additionalEquationGAMS')) cat(obj@misc$additionalEquationGAMS$code, sep = '\n', file = zz)
     
     cat(run_code[(grep('e0fc7d1e-fd81-4745-a0eb-2a142f837d1c', run_code) + 1):
