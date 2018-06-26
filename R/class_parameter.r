@@ -356,6 +356,20 @@ setMethod('print', 'parameter', function(x, ...) {
 })
 
 .sm_to_glpk <-  function(obj) {
+  gen_gg <- function(name, dtt, def) {
+    if (abs(def) == Inf) def <- 0
+    dtt <- dtt[dtt$value != def,, drop = FALSE]
+    ret <- paste0('param ', name, ' default ', def, ' := ')
+    if (nrow(dtt) == 0) {
+      paste0(ret, ';')
+    } else {
+      dtt[abs(dtt[, 'value']) == Inf, 'value'] <- 0
+      gg <- paste0(dtt[, ncol(dtt) - 1], '] ', dtt[, ncol(dtt)])
+      if (ncol(dtt) > 2) for(i in seq(ncol(dtt) - 2, 1)) gg <- paste0(dtt[, i], ',', gg)
+      gg <- paste0('[', gg)
+      c(ret, gg, ';')
+    }
+  }
   if (obj@nValues != -1) {
     obj@data <- obj@data[seq(length.out = obj@nValues),, drop = FALSE]
   }
@@ -366,73 +380,22 @@ setMethod('print', 'parameter', function(x, ...) {
       ret <- c(paste('set ', obj@name, ' := ', paste(obj@data[, 1], collapse = ' '), ';', sep = ''), '')
     }
   } else if (obj@type == 'map') {
+    dff <- 1 * (obj@not_data)
     if (nrow(obj@data) == 0) {
-      if (!obj@not_data) {
-        ret <- paste('param ', obj@name, ' default 0 := ;', sep = '')
-      } else {
-        ret <- paste('param ', obj@name, ' default 1 := ;', sep = '')
-      }
+      ret <- paste('param ', obj@name, ' default ', dff, ' := ;', sep = '')
     } else {
-      if (!obj@not_data) {
-        ret <- paste('param ', obj@name, ' default 0 := ', sep = '')
-        ret <- c(ret, apply(obj@data, 1, function(x) paste('[', paste(x, collapse = ','), '] 1', sep = '')))
-      } else {
-        ret <- paste('param ', obj@name, ' default 1 := ', sep = '')
-        ret <- c(ret, apply(obj@data, 1, function(x) paste('[', paste(x, collapse = ','), '] 0', sep = '')))
-      }
+      ret <- paste('param ', obj@name, ' default ', dff, ' := ', sep = '')
+      ret <- c(ret, apply(obj@data, 1, function(x) paste('[', paste(x, collapse = ','), '] ', 1 - dff, sep = '')))
       ret <- c(ret, ';', '')
     }
   } else if (obj@type == 'simple') { #! check simple and multi
-    dd <- obj@defVal
-    if (dd == Inf) dd <- 0
-    if (nrow(obj@data) == 0) {
-      ret <- paste('param ', obj@name, ' default ', dd, ' := ;', sep = '')
-    } else {
-      ret <- paste('param ', obj@name, ' default ', dd, ' := ', sep = '')
-      fl <- obj@data[, 'value'] != Inf
-      if (any(fl)) {
-        ret <- c(ret, paste('[', apply(obj@data[fl, -ncol(obj@data), drop = FALSE], 1, 
-                                       function(x) paste(x, collapse = ',')), '] ', obj@data[fl, 'value'], sep = ''))
-      }
-      ret <- c(ret, ';', '')
-    }
+    ret <- gen_gg(obj@name, obj@data, obj@defVal)
   } else if (obj@type == 'multi') {
-    gg <- obj@data
-    gg <- gg[gg$type == 'lo', , drop = FALSE]
-    gg <- gg[, colnames(gg) != 'type'] 
-    if (nrow(gg) == 0 || all(gg$value[1] == gg$value)) {
-      if (nrow(gg) == 0) dd <- obj@defVal[1] else dd <- gg$value[1]
-      if (dd == Inf) dd <- 0
-      ret <- paste('param ', obj@name, 'Lo default ', dd, ' := ;', sep = '')
-    } else {
-      if (nrow(gg) == 0) dd <- obj@defVal[1] else dd <- gg$value[1]
-      if (dd == Inf) dd <- 0
-      ret <- paste('param ', obj@name, 'Lo default ', dd, ' := ', sep = '')
-      fl <- gg[, 'value'] != Inf
-      if (any(fl)) {
-        ret <- c(ret, paste('[', apply(gg[fl, -ncol(gg), drop = FALSE], 1, 
-                                       function(x) paste(x, collapse = ',')), '] ', gg[fl, 'value'], sep = ''))
-      }
-      ret <- c(ret, ';', '')
-    }
-    gg <- obj@data
-    gg <- gg[gg$type == 'up', , drop = FALSE]
-    gg <- gg[, colnames(gg) != 'type'] 
-    if (nrow(gg) == 0 || all(gg$value[1] == gg$value)) {
-      if (nrow(gg) == 0) dd <- obj@defVal[2] else dd <- gg$value[1]
-      if (dd == Inf) dd <- 0
-      ret <- c(ret, paste('param ', obj@name, 'Up default ', dd, ' := ;', sep = ''))
-    } else {
-      if (nrow(gg) == 0) dd <- obj@defVal[2] else dd <- gg$value[1]
-      if (dd == Inf) dd <- 0
-      ret <- c(ret, paste('param ', obj@name, 'Up default ', dd, ' := ', sep = ''))
-      fl <- gg[, 'value'] != Inf
-      if (any(fl)) {
-        ret <- c(ret, paste('[', apply(gg[fl, -ncol(gg), drop = FALSE], 1, 
-                                       function(x) paste(x, collapse = ',')), '] ', gg[fl, 'value'], sep = ''))
-      }
-      ret <- c(ret, ';', '')
-    }
+    gg <- obj@data; f1 <- (colnames(gg) != 'type'); f2 <- (gg$type == 'lo')
+    ret <- c(
+      gen_gg(paste0(obj@name, 'Lo'), gg[ f2, f1, drop = FALSE], obj@defVal[1]),
+      gen_gg(paste0(obj@name, 'Up'), gg[!f2, f1, drop = FALSE], obj@defVal[2])
+    )
   } else stop('Must realise')
   ret
 }
